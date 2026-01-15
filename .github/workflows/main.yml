@@ -1,22 +1,35 @@
 name: Build OpenWrt
-on: [push]
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget unzip python3
-      - name: Update feeds
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget unzip python3 python3-distutils file
+
+      - name: Update and install feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
-      - name: Generate config
-        run: make defconfig
-      - name: Compile
-        run: make -j$(nproc)
+
+      - name: Configure and Build
+        run: |
+          make defconfig
+          # Usamos -j1 al principio para evitar errores de memoria en el servidor
+          make -j$(nproc) || make -j1 V=s
+
       - name: Upload artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
-          name: openwrt-binaries
+          name: openwrt-firmware
           path: bin/targets/ath79/generic/*.bin
