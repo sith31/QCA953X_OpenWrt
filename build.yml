@@ -1,0 +1,22 @@
+name: Build OpenWrt
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libncurses5-dev gawk git gettext libssl-dev xsltproc wget unzip python3
+      - name: Update feeds
+        run: |
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+      - name: Generate config
+        run: make defconfig
+      - name: Compile
+        run: make -j$(nproc)
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: openwrt-binaries
+          path: bin/targets/ath79/generic/*.bin
